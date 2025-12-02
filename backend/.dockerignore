@@ -1,0 +1,46 @@
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Data directories (will be mounted as volumes)
+data/vectorstore/*
+data/uploads/*
+
+# Keep directory structure
+!data/vectorstore/.gitkeep
+!data/uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files (will be set in Railway)
+.env
+.env.local
+
+# Scripts
+reload_docs.py
+test_rag.py
+debug_rag.py
+load_core_docs.py
+
+# Logs
+*.log
