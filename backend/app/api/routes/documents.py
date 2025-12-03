@@ -28,8 +28,8 @@ async def upload_document(
         if not file.filename:
             raise HTTPException(status_code=400, detail="No filename provided")
 
-        # Process upload
-        result = await document_service.process_upload(file)
+        # Process upload as core organizational document
+        result = await document_service.process_upload(file, scope="core")
 
         return DocumentUploadResponse(
             document_id=result["document_id"],
