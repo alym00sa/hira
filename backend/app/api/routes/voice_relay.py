@@ -66,11 +66,8 @@ When someone says "Hey HiRA" followed by their question:
         ) as openai_ws:
             print("✅ Connected to OpenAI Realtime API")
 
-            # Forward session.created
-            session_msg = await openai_ws.recv()
-            await client_ws.send_text(session_msg)
-
-            # Relay messages bidirectionally
+            # Start bidirectional relay immediately (don't manually forward session.created)
+            # The openai_to_client task will handle session.created automatically
             async def client_to_openai():
                 try:
                     while True:
