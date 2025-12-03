@@ -42,20 +42,17 @@ def detect_trigger(text: str) -> bool:
     text_lower = text.lower()
     return any(trigger in text_lower for trigger in triggers)
 
-async def handle_question(question: str, bot_id: str, private_to: Optional[str] = None, use_voice: bool = True):
+async def handle_question(question: str, bot_id: str, use_voice: bool = True):
     """
     Handle a question directed at HiRA with full context awareness
 
     Args:
         question: The question text
         bot_id: Bot ID to send response to
-        private_to: If set, respond privately to this person
-        use_voice: Whether to use voice response (False for private chats)
+        use_voice: Whether to use voice response (False for chat)
     """
     try:
         print(f"❓ Question detected: {question}")
-        if private_to:
-            print(f"   Private message to: {private_to}")
 
         # Initialize conversation history for this bot if needed
         if bot_id not in conversation_history:
@@ -160,8 +157,8 @@ Think of it as speaking out loud in a meeting - conversational but professional.
 
         print(f"💬 HiRA response: {response_text}")
 
-        # Send voice response (only for public/voice triggers)
-        if use_voice and not private_to:
+        # Send voice response (only if use_voice is True)
+        if use_voice:
             try:
                 audio_base64 = elevenlabs_service.text_to_speech_base64(response_text)
                 recall_service.output_audio(audio_base64, bot_id=bot_id)
@@ -169,20 +166,10 @@ Think of it as speaking out loud in a meeting - conversational but professional.
                 print(f"⚠️ Voice failed, using chat only: {str(e)}")
 
         # Send in chat
-        if private_to:
-            # Private message
-            recall_service.send_chat_message(
-                f"🌍 {response_text}",
-                bot_id=bot_id
-            )
-            # Note: Recall.ai API will need to support private messages
-            # For now, this sends to everyone - will update when API supports it
-        else:
-            # Public message
-            recall_service.send_chat_message(
-                f"🌍 {response_text}",
-                bot_id=bot_id
-            )
+        recall_service.send_chat_message(
+            f"🌍 {response_text}",
+            bot_id=bot_id
+        )
 
         print("✅ Response delivered!")
 
@@ -374,8 +361,7 @@ async def chat_webhook(request: Request):
                     asyncio.create_task(handle_question(
                         question=question,
                         bot_id=bot_id,
-                        private_to=None,
-                        use_voice=False
+                        use_voice=False  # No voice for chat
                     ))
                 else:
                     # Just acknowledged

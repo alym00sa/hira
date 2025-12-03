@@ -119,13 +119,7 @@ function VoicePage() {
       // Start recording
       await wavRecorder.record((data) => client.appendInputAudio(data.mono))
 
-      // Send initial greeting
-      client.sendUserMessageContent([
-        {
-          type: 'input_text',
-          text: 'Hello! I am ready to help.'
-        }
-      ])
+      // No initial greeting - wait for "Hey HiRA" wake word
 
     } catch (err) {
       console.error('❌ Connection failed:', err)

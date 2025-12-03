@@ -64,7 +64,7 @@ class RecallService:
         payload = {
             "meeting_url": meeting_url,
             "bot_name": bot_name,
-            "bot_image": "web_4_core",  # Higher performance bot for smooth video streaming ($0.80/hour)
+            "bot_image": "web_gpu",  # Best performance with GPU for smooth video streaming ($1.70/hour)
             "recording_config": recording_config
         }
 
@@ -163,7 +163,7 @@ class RecallService:
             raise ValueError("No bot_id provided")
 
         url = f"{self.base_url}/bot/{bot_id}/send_chat_message/"
-        payload = {"message": message, "send_to":"everyone"}
+        payload = {"message": message, "send_to": "everyone"}
 
         try:
             response = requests.post(url, headers=self.headers, json=payload, timeout=10)

@@ -7,6 +7,7 @@ export default function BotPage() {
   const [meetingUrl, setMeetingUrl] = useState('');
   const [meetingTitle, setMeetingTitle] = useState('');
   const [botName, setBotName] = useState('HiRA');
+  const [chatOnlyMode, setChatOnlyMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeBot, setActiveBot] = useState(null);
   const [error, setError] = useState(null);
@@ -26,12 +27,18 @@ export default function BotPage() {
       const frontendUrl = 'https://hira-frontend.vercel.app';
       const voiceInterfaceUrl = `${frontendUrl}/voice`;
 
-      const response = await botAPI.start({
+      // Only include output_media if not in chat-only mode
+      const requestData = {
         meeting_url: meetingUrl,
         meeting_title: meetingTitle || undefined,
-        bot_name: botName,
-        output_media: voiceInterfaceUrl  // Voice interface as bot's video
-      });
+        bot_name: botName
+      };
+
+      if (!chatOnlyMode) {
+        requestData.output_media = voiceInterfaceUrl;  // Voice interface as bot's video
+      }
+
+      const response = await botAPI.start(requestData);
 
       setActiveBot(response.data);
       console.log('Bot started with voice interface:', voiceInterfaceUrl);
@@ -116,6 +123,23 @@ export default function BotPage() {
               <small>This is how the bot will appear in the meeting</small>
             </div>
 
+            <div className="form-section">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={chatOnlyMode}
+                  onChange={(e) => setChatOnlyMode(e.target.checked)}
+                  disabled={isLoading}
+                />
+                <span>Chat Only Mode</span>
+              </label>
+              <small>
+                {chatOnlyMode
+                  ? '✓ Bot will only respond via text chat (no voice interface)'
+                  : 'Bot will have voice interface with visual status display'}
+              </small>
+            </div>
+
             {error && (
               <div className="error-message">
                 <AlertCircle size={20} />
@@ -126,33 +150,30 @@ export default function BotPage() {
             <div className="bot-features">
               <h3>What HiRA will do:</h3>
               <div className="features-grid">
-                <div className="feature-item">
-                  <Mic className="feature-icon" />
-                  <div>
-                    <strong>Voice Responses</strong>
-                    <p>Say "Hey HiRA" + your question</p>
-                    <small className="feature-note">Uses OpenAI Realtime API with RAG</small>
+                {!chatOnlyMode && (
+                  <div className="feature-item">
+                    <Mic className="feature-icon" />
+                    <div>
+                      <strong>Voice Responses</strong>
+                      <p>Say "Hey HiRA" + your question</p>
+                      <small className="feature-note">Uses OpenAI Realtime API with RAG</small>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="feature-item">
                   <MessageCircle className="feature-icon" />
                   <div>
-                    <strong>Public Chat</strong>
+                    <strong>Chat Responses</strong>
                     <p>Type @HiRA in meeting chat</p>
                     <small className="feature-note">Text responses via webhook</small>
                   </div>
                 </div>
-                <div className="feature-item">
-                  <Lock className="feature-icon private" />
-                  <div>
-                    <strong>Private DMs</strong>
-                    <p>Message HiRA privately for discreet help</p>
-                    <small className="feature-note">Both voice & text supported</small>
-                  </div>
-                </div>
               </div>
               <div className="bot-architecture-note">
-                <p><strong>How it works:</strong> HiRA joins with a voice interface displayed as video feed. Participants see HiRA's status (listening, thinking, speaking) and can interact via voice or chat.</p>
+                <p><strong>How it works:</strong> {chatOnlyMode
+                  ? 'HiRA joins as a regular participant and responds to @HiRA mentions in chat with RAG-powered answers.'
+                  : 'HiRA joins with a voice interface displayed as video feed. Participants see HiRA\'s status (listening, thinking, speaking) and can interact via voice or chat.'
+                }</p>
               </div>
             </div>
 
@@ -194,27 +215,21 @@ export default function BotPage() {
                 </div>
               </div>
 
-              <div className="instruction-item">
-                <div className="instruction-number">2</div>
-                <div>
-                  <strong>Voice: "Hey HiRA, [question]"</strong>
-                  <p>HiRA will speak the answer to everyone</p>
+              {!chatOnlyMode && (
+                <div className="instruction-item">
+                  <div className="instruction-number">2</div>
+                  <div>
+                    <strong>Voice: "Hey HiRA, [question]"</strong>
+                    <p>HiRA will speak the answer to everyone</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="instruction-item">
-                <div className="instruction-number">3</div>
+                <div className="instruction-number">{chatOnlyMode ? '2' : '3'}</div>
                 <div>
-                  <strong>Public chat: @HiRA [question]</strong>
-                  <p>HiRA responds in chat + with voice</p>
-                </div>
-              </div>
-
-              <div className="instruction-item">
-                <div className="instruction-number">4</div>
-                <div>
-                  <strong>Private DM: Message HiRA directly</strong>
-                  <p>Get private answers without interrupting</p>
+                  <strong>Chat: @HiRA [question]</strong>
+                  <p>HiRA responds in the chat{!chatOnlyMode && ' + with voice'}</p>
                 </div>
               </div>
             </div>
