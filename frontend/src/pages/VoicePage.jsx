@@ -1,115 +1,173 @@
-import { useEffect, useRef, useState } from 'react';
-import '../styles/VoicePage.css';
+import { useState, useEffect, useRef, useCallback } from 'react'
+import '../styles/VoicePage.css'
 
-export default function VoicePage() {
-  const [status, setStatus] = useState('connecting'); // connecting, ready, listening, thinking, speaking
-  const clientRef = useRef(null);
-
+function VoicePage() {
   // Get relay server URL from environment or use default
   const RELAY_SERVER_URL = import.meta.env.VITE_RELAY_URL || 'ws://localhost:8765'
 
-  useEffect(() => {
-    connectToRelay();
-    return () => {
-      if (clientRef.current) {
-        clientRef.current.disconnect();
-      }
-    };
-  }, []);
+  const [connectionStatus, setConnectionStatus] = useState('connecting')
+  const [isListening, setIsListening] = useState(false)
+  const [isThinking, setIsThinking] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [error, setError] = useState(null)
 
-  const connectToRelay = async () => {
+  const clientRef = useRef(null)
+  const wavRecorderRef = useRef(null)
+  const wavStreamPlayerRef = useRef(null)
+  const isConnectedRef = useRef(false)
+
+  const connectToRelay = useCallback(async () => {
+    if (isConnectedRef.current) return
+
     try {
-      const { RealtimeClient } = await import('@openai/realtime-api-beta');
-      const { WavRecorder, WavStreamPlayer } = await import('../lib/wavtools/index.js');
+      setConnectionStatus('connecting')
+      setError(null)
 
-      // Initialize audio
-      const wavRecorder = new WavRecorder({ sampleRate: 24000 });
-      const wavStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 });
+      // Dynamically import OpenAI Realtime SDK
+      const { RealtimeClient } = await import('@openai/realtime-api-beta')
+      const { WavRecorder, WavStreamPlayer } = await import('../lib/wavtools/index.js')
 
-      // Create client
-      const client = new RealtimeClient({ url: RELAY_SERVER_URL });
-      clientRef.current = client;
+      // Initialize audio components
+      if (!clientRef.current) {
+        clientRef.current = new RealtimeClient({ url: RELAY_SERVER_URL })
+      }
+      if (!wavRecorderRef.current) {
+        wavRecorderRef.current = new WavRecorder({ sampleRate: 24000 })
+      }
+      if (!wavStreamPlayerRef.current) {
+        wavStreamPlayerRef.current = new WavStreamPlayer({ sampleRate: 24000 })
+      }
 
-      // Event handlers
-      client.on('connected', () => {
-        console.log('✅ Connected to relay');
-        setStatus('ready');
-      });
+      const client = clientRef.current
+      const wavRecorder = wavRecorderRef.current
+      const wavStreamPlayer = wavStreamPlayerRef.current
+
+      // Connect to microphone
+      await wavRecorder.begin()
+
+      // Connect to audio output
+      await wavStreamPlayer.connect()
+
+      // Connect to relay server
+      await client.connect()
+
+      isConnectedRef.current = true
+      setConnectionStatus('connected')
+
+      // Set up event handlers
+      client.on('error', (event) => {
+        console.error('Realtime error:', event)
+        setError('Connection error')
+        setConnectionStatus('error')
+      })
 
       client.on('disconnected', () => {
-        console.log('🔌 Disconnected');
-        setStatus('connecting');
-      });
+        isConnectedRef.current = false
+        setConnectionStatus('disconnected')
+      })
 
-      client.on('conversation.updated', ({ item, delta }) => {
-        if (item.status === 'in_progress') {
-          if (item.role === 'user') {
-            setStatus('listening');
-          } else if (item.type === 'function_call') {
-            setStatus('thinking');
-          }
-        } else if (item.status === 'completed' && item.role === 'assistant') {
-          setStatus('ready');
-        }
-      });
-
-      client.on('conversation.interrupted', () => {
-        setStatus('ready');
-      });
-
-      // Audio output
-      client.on('conversation.updated', async ({ item, delta }) => {
-        if (delta?.audio) {
-          wavStreamPlayer.add16BitPCM(delta.audio, item.id);
-        }
-        if (item.status === 'completed' && item.formatted.audio?.length) {
-          const wavFile = await WavRecorder.decode(
-            item.formatted.audio,
-            24000,
-            24000
-          );
-          wavStreamPlayer.add16BitPCM(wavFile.getChannelData(0), item.id);
-        }
-      });
-
-      // Track audio playback
-      wavStreamPlayer.on('playback_start', () => {
-        setStatus('speaking');
-      });
-
-      wavStreamPlayer.on('playback_stop', () => {
-        setStatus('ready');
-      });
-
-      // Connect
-      await wavRecorder.begin();
-      await wavStreamPlayer.connect();
-      await client.connect();
-
-      // Send initial session update
+      // Update session with VAD
       client.updateSession({
-        turn_detection: { type: 'server_vad' },
-        input_audio_transcription: { model: 'whisper-1' }
-      });
+        turn_detection: { type: 'server_vad' }
+      })
+
+      // Handle conversation updates
+      client.on('conversation.updated', async ({ item, delta }) => {
+        // Handle audio deltas
+        if (delta?.audio) {
+          wavStreamPlayer.add16BitPCM(delta.audio, item.id)
+          setIsSpeaking(true)
+        }
+
+        // Handle completed items
+        if (item.status === 'completed') {
+          setIsSpeaking(false)
+          setIsThinking(false)
+
+          if (item.formatted.audio?.length) {
+            const wavFile = await WavRecorder.decode(
+              item.formatted.audio,
+              24000,
+              24000
+            )
+            item.formatted.file = wavFile
+          }
+        }
+      })
+
+      // Handle speech detection
+      client.on('input_audio_buffer.speech_started', () => {
+        setIsListening(true)
+      })
+
+      client.on('input_audio_buffer.speech_stopped', () => {
+        setIsListening(false)
+        setIsThinking(true)
+      })
+
+      // Handle conversation interruptions
+      client.on('conversation.interrupted', async () => {
+        const trackSampleOffset = await wavStreamPlayer.interrupt()
+        if (trackSampleOffset?.trackId) {
+          const { trackId, offset } = trackSampleOffset
+          await client.cancelResponse(trackId, offset)
+        }
+        setIsSpeaking(false)
+        setIsThinking(false)
+      })
 
       // Start recording
-      await wavRecorder.record((data) => {
-        client.appendInputAudio(data.mono);
-      });
+      await wavRecorder.record((data) => client.appendInputAudio(data.mono))
 
-    } catch (error) {
-      console.error('❌ Connection failed:', error);
-      setStatus('error');
+      // Send initial greeting
+      client.sendUserMessageContent([
+        {
+          type: 'input_text',
+          text: 'Hello! I am ready to help.'
+        }
+      ])
+
+    } catch (err) {
+      console.error('❌ Connection failed:', err)
+      setError(err.message || 'Failed to connect')
+      setConnectionStatus('error')
+      isConnectedRef.current = false
     }
-  };
+  }, [RELAY_SERVER_URL])
+
+  useEffect(() => {
+    connectToRelay()
+
+    return () => {
+      // Cleanup on unmount
+      if (clientRef.current) {
+        clientRef.current.disconnect()
+      }
+      if (wavRecorderRef.current) {
+        wavRecorderRef.current.end()
+      }
+    }
+  }, [connectToRelay])
+
+  // Determine status for CSS class
+  const getStatus = () => {
+    if (error || connectionStatus === 'error') return 'error'
+    if (isSpeaking) return 'speaking'
+    if (isThinking) return 'thinking'
+    if (isListening) return 'listening'
+    if (connectionStatus === 'connected') return 'ready'
+    return 'connecting'
+  }
 
   return (
     <div className="voice-page">
       <div className="voice-content">
-        <h1 className={`hira-title ${status}`}>HiRA</h1>
-        {status === 'connecting' && <p className="status-text">Connecting...</p>}
-        {status === 'error' && <p className="status-text error">Connection failed</p>}
+        <h1 className={`hira-title ${getStatus()}`}>HiRA</h1>
+        {connectionStatus === 'connecting' && <p className="status-text">Connecting...</p>}
+        {error && <p className="status-text error">{error}</p>}
       </div>
     </div>
-  );
+  )
 }
+
+export default VoicePage
