@@ -18,11 +18,20 @@ async def voice_relay_endpoint(client_ws: WebSocket):
     Proxies connection between frontend and OpenAI Realtime API with RAG
     """
     await client_ws.accept()
-    print(f"🔵 Voice relay client connected")
+    print(f"🔵 Voice relay client connected", flush=True)
 
     # Initialize RAG and transcript buffer
-    rag_engine = RAGEngine()
-    transcript = TranscriptBuffer()
+    try:
+        print("🔧 Initializing RAG engine and transcript buffer...", flush=True)
+        rag_engine = RAGEngine()
+        transcript = TranscriptBuffer()
+        print("✅ RAG and transcript buffer initialized", flush=True)
+    except Exception as e:
+        print(f"❌ Error initializing RAG: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        await client_ws.close(code=1011, reason="Initialization error")
+        return
 
     # OpenAI configuration
     openai_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
@@ -56,6 +65,7 @@ When someone says "Hey HiRA" followed by their question:
 3. Mention a source if helpful"""
 
     try:
+        print(f"🔌 Connecting to OpenAI Realtime API...", flush=True)
         async with websockets.connect(
             openai_url,
             subprotocols=["realtime"],
@@ -64,10 +74,12 @@ When someone says "Hey HiRA" followed by their question:
                 "OpenAI-Beta": "realtime=v1"
             }
         ) as openai_ws:
-            print("✅ Connected to OpenAI Realtime API")
+            print("✅ Connected to OpenAI Realtime API", flush=True)
 
             # Start bidirectional relay immediately (don't manually forward session.created)
             # The openai_to_client task will handle session.created automatically
+            print("🔄 Starting bidirectional relay tasks...", flush=True)
+
             async def client_to_openai():
                 try:
                     while True:
