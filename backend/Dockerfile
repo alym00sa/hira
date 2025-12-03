@@ -21,8 +21,8 @@ COPY backend/ .
 # Create necessary directories
 RUN mkdir -p data/vectorstore data/uploads
 
-# Expose port
-EXPOSE 8000
+# Expose ports (FastAPI + WebSocket)
+EXPOSE 8000 8765
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run both FastAPI and WebSocket relay servers
+CMD ["python", "run_servers.py"]
