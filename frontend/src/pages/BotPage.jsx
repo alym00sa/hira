@@ -22,7 +22,8 @@ export default function BotPage() {
 
     try {
       // Build voice interface URL (will be bot's video feed)
-      const frontendUrl = window.location.origin;
+      // Use deployed Vercel URL for public access (required by Recall.ai)
+      const frontendUrl = 'https://hira-frontend.vercel.app';
       const voiceInterfaceUrl = `${frontendUrl}/voice`;
 
       const response = await botAPI.start({

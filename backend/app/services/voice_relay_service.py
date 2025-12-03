@@ -103,10 +103,10 @@ Be warm, professional, and concise - this is voice, not text!"""
         transcript = TranscriptBuffer()
 
         openai_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
-        openai_api_key = os.getenv("OPENAI_API_KEY")
+        openai_api_key = settings.OPENAI_API_KEY  # Use settings module (loads from .env)
 
         if not openai_api_key:
-            print("❌ OPENAI_API_KEY not found")
+            print("❌ OPENAI_API_KEY not found in settings")
             await client_ws.close(1008, "Server configuration error")
             return
 

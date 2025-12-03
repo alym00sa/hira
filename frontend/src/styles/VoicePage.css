@@ -1,367 +1,138 @@
-/* Voice Page - Bot's Video Feed */
+/* Voice Page - Minimal Clean Design for Zoom */
 .voice-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #312e81 0%, #4c1d95 100%); /* Even darker blue/purple gradient */
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  position: relative;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
 }
 
-/* Animated background */
-.voice-page::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
-  animation: backgroundPulse 10s ease-in-out infinite;
-}
-
-@keyframes backgroundPulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-.voice-container {
-  position: relative;
-  z-index: 1;
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
-  padding: 3rem;
-  max-width: 600px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
+.voice-content {
   text-align: center;
 }
 
-/* Branding */
-.voice-brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.brand-icon {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.hira-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 240px; /* 1.5x bigger (160px * 1.5) */
+  font-weight: 800;
   color: white;
-  box-shadow: var(--shadow-lg);
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-.voice-brand h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
   margin: 0;
-}
-
-.voice-brand p {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* Status Indicator */
-.voice-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem 2rem;
-  border-radius: var(--radius-lg);
-  width: 100%;
+  padding: 0;
+  letter-spacing: 0.05em;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
-.voice-status.status-connecting {
-  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+/* Ready state - subtle glow */
+.hira-title.ready {
+  animation: subtleGlow 3s ease-in-out infinite;
 }
 
-.voice-status.status-connected {
-  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+@keyframes subtleGlow {
+  0%, 100% {
+    text-shadow: 0 10px 40px rgba(0, 0, 0, 0.3),
+                 0 0 20px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    text-shadow: 0 10px 40px rgba(0, 0, 0, 0.3),
+                 0 0 40px rgba(255, 255, 255, 0.5);
+  }
 }
 
-.voice-status.status-listening {
-  background: linear-gradient(135deg, #dbeafe, #93c5fd);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.voice-status.status-thinking {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-}
-
-.voice-status.status-speaking {
-  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+/* Listening state - pulse */
+.hira-title.listening {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-.voice-status.status-error {
-  background: linear-gradient(135deg, #fee2e2, #fca5a5);
-}
-
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.02); opacity: 0.95; }
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
 }
 
-.status-icon {
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary);
-  transition: transform 0.3s ease;
+/* Thinking state - slow pulse with glow */
+.hira-title.thinking {
+  animation: thinking 2s ease-in-out infinite;
 }
 
-.voice-status.status-listening .status-icon,
-.voice-status.status-speaking .status-icon {
-  animation: iconPulse 1s ease-in-out infinite;
+@keyframes thinking {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+    text-shadow: 0 10px 40px rgba(0, 0, 0, 0.3),
+                 0 0 60px rgba(255, 255, 255, 0.8);
+  }
 }
 
-@keyframes iconPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+/* Speaking state - active pulse with bright glow */
+.hira-title.speaking {
+  animation: speaking 0.8s ease-in-out infinite;
+}
+
+@keyframes speaking {
+  0%, 100% {
+    transform: scale(1);
+    text-shadow: 0 10px 40px rgba(0, 0, 0, 0.3),
+                 0 0 40px rgba(255, 255, 255, 0.6);
+  }
+  50% {
+    transform: scale(1.08);
+    text-shadow: 0 10px 40px rgba(0, 0, 0, 0.3),
+                 0 0 80px rgba(255, 255, 255, 1),
+                 0 0 120px rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* Connecting/Error states */
+.hira-title.connecting {
+  opacity: 0.5;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
 }
 
 .status-text {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 20px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-/* Visualizer */
-.voice-visualizer {
-  width: 100%;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.status-text.error {
+  color: #ff6b6b;
 }
 
-.audio-waves {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  height: 100%;
-}
-
-.wave {
-  width: 4px;
-  background: linear-gradient(to top, var(--primary-color), var(--primary-light));
-  border-radius: 4px;
-  animation: wave 1.2s ease-in-out infinite;
-}
-
-.wave:nth-child(1) { animation-delay: 0s; }
-.wave:nth-child(2) { animation-delay: 0.1s; }
-.wave:nth-child(3) { animation-delay: 0.2s; }
-.wave:nth-child(4) { animation-delay: 0.3s; }
-.wave:nth-child(5) { animation-delay: 0.4s; }
-
-@keyframes wave {
-  0%, 100% { height: 20px; }
-  50% { height: 60px; }
-}
-
-.thinking-dots {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.dot {
-  width: 12px;
-  height: 12px;
-  background: var(--primary-color);
-  border-radius: 50%;
-  animation: dotBounce 1.4s ease-in-out infinite;
-}
-
-.dot:nth-child(1) { animation-delay: 0s; }
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes dotBounce {
-  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-  40% { transform: scale(1.2); opacity: 1; }
-}
-
-/* Transcript Display */
-.voice-transcript {
-  width: 100%;
-  padding: 1.5rem;
-  background: var(--background);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+/* Responsive - adjust for smaller displays */
+@media (max-width: 1024px) {
+  .hira-title {
+    font-size: 150px; /* Proportionally adjusted */
   }
 }
 
-.transcript-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-}
-
-.transcript-text {
-  font-size: 1rem;
-  color: var(--text-primary);
-  font-style: italic;
-}
-
-/* Error Display */
-.voice-error {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: #fee2e2;
-  border: 1px solid #fca5a5;
-  border-radius: var(--radius-md);
-  color: #991b1b;
-  width: 100%;
-}
-
-/* Instructions */
-.voice-instructions {
-  width: 100%;
-  padding: 1.5rem;
-  background: var(--background);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  text-align: left;
-}
-
-.voice-instructions h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 1rem 0;
-}
-
-.voice-instructions ul {
-  margin: 0;
-  padding-left: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.voice-instructions li {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
-.voice-instructions strong {
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-/* Footer */
-.voice-footer {
-  width: 100%;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-.connection-info {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-}
-
-.connection-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  transition: background-color 0.3s ease;
-}
-
-.connection-dot.status-connecting {
-  background: var(--text-tertiary);
-  animation: blink 1s infinite;
-}
-
-.connection-dot.status-connected {
-  background: var(--success);
-}
-
-.connection-dot.status-listening,
-.connection-dot.status-thinking,
-.connection-dot.status-speaking {
-  background: var(--primary-color);
-}
-
-.connection-dot.status-error {
-  background: var(--error);
-}
-
-@keyframes blink {
-  0%, 50%, 100% { opacity: 1; }
-  25%, 75% { opacity: 0.3; }
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .voice-container {
-    padding: 2rem;
-    gap: 1.5rem;
+  .hira-title {
+    font-size: 100px; /* Proportionally adjusted */
   }
-
-  .voice-brand h1 {
-    font-size: 2rem;
-  }
-
-  .brand-icon {
-    width: 64px;
-    height: 64px;
-  }
-
-  .status-icon {
-    width: 48px;
-    height: 48px;
-  }
-
   .status-text {
-    font-size: 1rem;
+    font-size: 14px;
   }
 }

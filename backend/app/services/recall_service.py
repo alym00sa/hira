@@ -64,24 +64,21 @@ class RecallService:
         payload = {
             "meeting_url": meeting_url,
             "bot_name": bot_name,
+            "bot_image": "web_4_core",  # Higher performance bot for smooth video streaming ($0.80/hour)
             "recording_config": recording_config
         }
 
-        # TEMPORARILY DISABLED - Testing if output_media causes 403
         # Add output_media if provided (for voice interface)
-        # if output_media:
-        #     payload["output_media"] = {
-        #         "camera": {
-        #             "kind": "webpage",
-        #             "config": {
-        #                 "url": output_media
-        #             }
-        #         }
-        #     }
-        #     print(f"🎥 Voice interface enabled: {output_media}")
-
         if output_media:
-            print(f"⚠️ output_media provided but DISABLED for testing: {output_media}")
+            payload["output_media"] = {
+                "camera": {
+                    "kind": "webpage",
+                    "config": {
+                        "url": output_media
+                    }
+                }
+            }
+            print(f"🎥 Voice interface enabled: {output_media}")
 
         try:
             url = f"{self.base_url}/bot/"  # Match working test format
