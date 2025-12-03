@@ -2,12 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import '../styles/VoicePage.css'
 
 function VoicePage() {
-  // Get API base URL and construct WebSocket relay URL
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
-  // Convert HTTP(S) to WS(S) and add voice-relay endpoint
-  const RELAY_SERVER_URL = API_BASE_URL
-    .replace('https://', 'wss://')
-    .replace('http://', 'ws://') + '/voice-relay'
+  const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
 
   const [connectionStatus, setConnectionStatus] = useState('connecting')
   const [isListening, setIsListening] = useState(false)
@@ -20,8 +16,37 @@ function VoicePage() {
   const wavStreamPlayerRef = useRef(null)
   const isConnectedRef = useRef(false)
 
-  const connectToRelay = useCallback(async () => {
+  // HiRA tools for RAG
+  const HIRA_TOOLS = [{
+    type: "function",
+    name: "search_knowledge_base",
+    description: "Search the human rights knowledge base for information about HRBA, AI ethics, and related topics.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "The search query" }
+      },
+      required: ["query"]
+    }
+  }]
+
+  const HIRA_INSTRUCTIONS = `You are HiRA (Human Rights Assistant), a voice AI specializing in human rights-based approaches.
+
+CRITICAL WAKE WORD RULE: ONLY respond when you hear "Hey HiRA" at the START of speech. Stay silent otherwise.
+
+When someone says "Hey HiRA" followed by their question:
+1. Use search_knowledge_base to find information
+2. Give a BRIEF, conversational response (2-3 sentences for voice)
+3. Mention a source if helpful`
+
+  const connectToOpenAI = useCallback(async () => {
     if (isConnectedRef.current) return
+
+    if (!OPENAI_API_KEY) {
+      setError('OpenAI API key not configured')
+      setConnectionStatus('error')
+      return
+    }
 
     try {
       setConnectionStatus('connecting')
@@ -33,7 +58,10 @@ function VoicePage() {
 
       // Initialize audio components
       if (!clientRef.current) {
-        clientRef.current = new RealtimeClient({ url: RELAY_SERVER_URL })
+        clientRef.current = new RealtimeClient({
+          apiKey: OPENAI_API_KEY,
+          dangerouslyAllowAPIKeyInBrowser: true
+        })
       }
       if (!wavRecorderRef.current) {
         wavRecorderRef.current = new WavRecorder({ sampleRate: 24000 })
@@ -52,7 +80,7 @@ function VoicePage() {
       // Connect to audio output
       await wavStreamPlayer.connect()
 
-      // Connect to relay server
+      // Connect to OpenAI Realtime API
       await client.connect()
 
       isConnectedRef.current = true
@@ -70,12 +98,17 @@ function VoicePage() {
         setConnectionStatus('disconnected')
       })
 
-      // Update session with VAD
+      // Update session with tools and instructions
       client.updateSession({
-        turn_detection: { type: 'server_vad' }
+        turn_detection: { type: 'server_vad' },
+        tools: HIRA_TOOLS,
+        tool_choice: 'auto',
+        voice: 'shimmer',
+        instructions: HIRA_INSTRUCTIONS,
+        temperature: 0.7
       })
 
-      // Handle conversation updates
+      // Handle function calls
       client.on('conversation.updated', async ({ item, delta }) => {
         // Handle audio deltas
         if (delta?.audio) {
@@ -83,26 +116,55 @@ function VoicePage() {
           setIsSpeaking(true)
         }
 
+        // Handle function calls
+        if (item.type === 'function_call' && item.status === 'completed') {
+          if (item.name === 'search_knowledge_base') {
+            try {
+              const args = JSON.parse(item.arguments)
+              console.log('🔍 Searching knowledge base:', args.query)
+
+              // Call our Railway backend for RAG
+              const response = await fetch(`${API_BASE_URL}/rag/search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: args.query, n_results: 3 })
+              })
+
+              if (!response.ok) {
+                throw new Error('RAG search failed')
+              }
+
+              const result = await response.json()
+              console.log('✅ RAG result:', result)
+
+              // Send function result back to OpenAI
+              client.sendFunctionCallOutput(item.call_id, result)
+            } catch (error) {
+              console.error('❌ RAG error:', error)
+              client.sendFunctionCallOutput(item.call_id, {
+                error: 'Failed to search knowledge base'
+              })
+            }
+          }
+        }
+
         // Handle completed items
-        if (item.status === 'completed') {
+        if (item.status === 'completed' && item.formatted?.audio?.length) {
           setIsSpeaking(false)
           setIsThinking(false)
 
-          if (item.formatted.audio?.length) {
-            const wavFile = await WavRecorder.decode(
-              item.formatted.audio,
-              24000,
-              24000
-            )
-            item.formatted.file = wavFile
-          }
+          const wavFile = await WavRecorder.decode(
+            item.formatted.audio,
+            24000,
+            24000
+          )
+          item.formatted.file = wavFile
         }
       })
 
-      // Handle speech detection with debounce to prevent initial flash
+      // Handle speech detection with debounce
       let speechTimeout = null
       client.on('input_audio_buffer.speech_started', () => {
-        // Small delay to filter out connection noise
         speechTimeout = setTimeout(() => {
           setIsListening(true)
         }, 200)
@@ -128,7 +190,7 @@ function VoicePage() {
       // Start recording
       await wavRecorder.record((data) => client.appendInputAudio(data.mono))
 
-      // No initial greeting - wait for "Hey HiRA" wake word
+      console.log('✅ Connected to OpenAI Realtime API (direct connection)')
 
     } catch (err) {
       console.error('❌ Connection failed:', err)
@@ -136,10 +198,10 @@ function VoicePage() {
       setConnectionStatus('error')
       isConnectedRef.current = false
     }
-  }, [RELAY_SERVER_URL])
+  }, [API_BASE_URL, OPENAI_API_KEY])
 
   useEffect(() => {
-    connectToRelay()
+    connectToOpenAI()
 
     return () => {
       // Cleanup on unmount
@@ -150,7 +212,7 @@ function VoicePage() {
         wavRecorderRef.current.end()
       }
     }
-  }, [connectToRelay])
+  }, [connectToOpenAI])
 
   // Determine status for CSS class
   const getStatus = () => {

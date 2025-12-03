@@ -29,20 +29,21 @@ async def voice_relay_endpoint(client_ws: WebSocket):
     WebSocket endpoint for voice relay
     Proxies connection between frontend and OpenAI Realtime API with RAG
     """
-    await client_ws.accept()
-    print(f"🔵 Voice relay client connected", flush=True)
-
-    # Use shared RAG engine and create new transcript buffer
-    rag_engine = get_rag_engine()
-    transcript = TranscriptBuffer()
-
-    # OpenAI configuration
+    # OpenAI configuration (prepare before accepting client)
     openai_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
     openai_api_key = settings.OPENAI_API_KEY
 
     if not openai_api_key:
         await client_ws.close(code=1008, reason="Server configuration error")
         return
+
+    # Use shared RAG engine and create new transcript buffer
+    rag_engine = get_rag_engine()
+    transcript = TranscriptBuffer()
+
+    # Accept client connection
+    await client_ws.accept()
+    print(f"🔵 Voice relay client connected", flush=True)
 
     # HiRA tools and instructions (from voice_relay_service.py)
     HIRA_TOOLS = [{
