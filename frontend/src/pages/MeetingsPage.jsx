@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, Users, Clock, AlertCircle, Loader2, FileText, Trash2, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Calendar, Users, Clock, AlertCircle, Loader2, FileText, Trash2, Search, ChevronDown, ChevronUp, Edit2, Check, X } from 'lucide-react'
 import { meetingsAPI } from '../services/api'
 import '../styles/MeetingsPage.css'
 
@@ -10,6 +10,8 @@ function MeetingsPage() {
   const [error, setError] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedActionItems, setExpandedActionItems] = useState({})
+  const [editingMeetingId, setEditingMeetingId] = useState(null)
+  const [editingTitle, setEditingTitle] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -75,6 +77,38 @@ function MeetingsPage() {
     }))
   }
 
+  const handleStartEdit = (meetingId, currentTitle, e) => {
+    e.stopPropagation()
+    setEditingMeetingId(meetingId)
+    setEditingTitle(currentTitle)
+  }
+
+  const handleCancelEdit = (e) => {
+    e.stopPropagation()
+    setEditingMeetingId(null)
+    setEditingTitle('')
+  }
+
+  const handleSaveEdit = async (meetingId, e) => {
+    e.stopPropagation()
+    if (!editingTitle.trim()) {
+      alert('Meeting title cannot be empty')
+      return
+    }
+
+    try {
+      await meetingsAPI.update(meetingId, { title: editingTitle })
+      setMeetings(prev => prev.map(m =>
+        m.id === meetingId ? { ...m, title: editingTitle } : m
+      ))
+      setEditingMeetingId(null)
+      setEditingTitle('')
+    } catch (err) {
+      console.error('Error updating meeting title:', err)
+      alert('Failed to update meeting title')
+    }
+  }
+
   const filteredMeetings = meetings.filter(meeting => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -137,19 +171,59 @@ function MeetingsPage() {
                   onClick={() => handleMeetingClick(meeting.id)}
                 >
                   <div className="meeting-card-header">
-                    <h3 className="meeting-title">{meeting.title}</h3>
-                    <div className="meeting-card-actions">
-                      {meeting.processed && (
-                        <span className="badge badge-success">Processed</span>
-                      )}
-                      <button
-                        className="meeting-delete-btn"
-                        onClick={(e) => handleDelete(meeting.id, e)}
-                        title="Delete meeting"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    {editingMeetingId === meeting.id ? (
+                      <div className="meeting-title-edit">
+                        <input
+                          type="text"
+                          className="meeting-title-input"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                        <div className="edit-actions">
+                          <button
+                            className="edit-save-btn"
+                            onClick={(e) => handleSaveEdit(meeting.id, e)}
+                            title="Save"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            className="edit-cancel-btn"
+                            onClick={handleCancelEdit}
+                            title="Cancel"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="meeting-title-wrapper">
+                          <h3 className="meeting-title">{meeting.title}</h3>
+                          <button
+                            className="meeting-edit-btn"
+                            onClick={(e) => handleStartEdit(meeting.id, meeting.title, e)}
+                            title="Edit title"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                        </div>
+                        <div className="meeting-card-actions">
+                          {meeting.processed && (
+                            <span className="badge badge-success">Processed</span>
+                          )}
+                          <button
+                            className="meeting-delete-btn"
+                            onClick={(e) => handleDelete(meeting.id, e)}
+                            title="Delete meeting"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="meeting-meta">
