@@ -5,6 +5,7 @@ import DocumentsPage from './pages/DocumentsPage'
 import MeetingsPage from './pages/MeetingsPage'
 import MeetingDetailPage from './pages/MeetingDetailPage'
 import BotPage from './pages/BotPage'
+import VoicePage from './pages/VoicePage'
 import './styles/App.css'
 
 function App() {
@@ -44,6 +45,8 @@ function App() {
             <Route path="/meetings" element={<MeetingsPage />} />
             <Route path="/meetings/:meetingId" element={<MeetingDetailPage />} />
             <Route path="/bot" element={<BotPage />} />
+            {/* Voice interface - displayed as bot's video feed in Zoom (no nav link) */}
+            <Route path="/voice" element={<VoicePage />} />
           </Routes>
         </main>
       </div>

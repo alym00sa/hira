@@ -26,6 +26,9 @@ rag_engine = RAGEngine()
 # Store active bot sessions
 active_sessions = {}
 
+# Store conversation history per bot session
+conversation_history = {}  # bot_id -> list of {"question": str, "answer": str}
+
 def detect_trigger(text: str) -> bool:
     """Check if text contains a trigger phrase for HiRA"""
     triggers = [
@@ -54,6 +57,10 @@ async def handle_question(question: str, bot_id: str, private_to: Optional[str] 
         if private_to:
             print(f"   Private message to: {private_to}")
 
+        # Initialize conversation history for this bot if needed
+        if bot_id not in conversation_history:
+            conversation_history[bot_id] = []
+
         # Get bot session for live transcript
         session = active_sessions.get(bot_id, {})
         meeting_id = session.get('meeting_id')
@@ -68,7 +75,17 @@ CURRENT MEETING CONTEXT (what's been said recently):
 """
             print(f"📝 Using {len(session.get('transcript', []))} transcript segments")
 
-        # 2. Search relevant previous meetings (only if relevant)
+        # 2. Build meeting Q&A context from conversation history
+        qa_context = ""
+        if conversation_history[bot_id]:
+            recent_qa = conversation_history[bot_id][-3:]  # Last 3 Q&A pairs
+            qa_context = "\n\nPREVIOUS QUESTIONS IN THIS MEETING:\n"
+            for i, qa in enumerate(recent_qa, 1):
+                qa_context += f"{i}. Q: {qa['question']}\n   A: {qa['answer'][:100]}...\n"
+            qa_context += "\n(Use this to give contextual responses and reference previous discussion if relevant.)\n"
+            print(f"📊 Meeting history: {len(conversation_history[bot_id])} Q&A pairs")
+
+        # 3. Search relevant previous meetings (only if relevant)
         past_meetings_context = ""
         db = SessionLocal()
         try:
@@ -98,7 +115,7 @@ RELEVANT PREVIOUS MEETINGS:
         finally:
             db.close()
 
-        # 3. Get context from RAG knowledge base
+        # 4. Get context from RAG knowledge base
         rag_context = rag_engine.build_context_prompt(
             query=question,
             user_id="bot_user"
@@ -108,39 +125,38 @@ KNOWLEDGE BASE DOCUMENTS:
 {rag_context}
 """
 
-        # Adjust response length based on chat type
-        max_words = 150 if private_to else 200
+        # Build enhanced question with Zoom meeting guidance
+        enhanced_question = f"""{question}
 
-        # Build comprehensive prompt with all context
-        response_type = "private chat message" if private_to else "spoken response in a meeting"
-        hira_prompt = f"""You are HiRA, a warm and professional Human Rights Assistant in a Zoom meeting.
+[IMPORTANT: This is a Zoom meeting chat response. Keep it:
+- BRIEF: 2-3 sentences maximum (50-75 words)
+- WARM: Friendly and approachable tone
+- CLEAR: Simple language, no jargon unless necessary
+- ACTIONABLE: Give concrete, helpful guidance
+- CONTEXTUAL: Reference previous discussion if relevant
+Think of it as speaking out loud in a meeting - conversational but professional.]{qa_context}"""
 
-Someone asked you a question. Provide a helpful, concise answer using ALL available context.
-This is a {response_type}, so keep it brief but informative.
+        # Generate response using LLM service
+        result = await llm_service.generate_response(
+            user_message=enhanced_question,
+            context=rag_context
+        )
+        response_text = result["message"]
 
-QUESTION: {question}
-{meeting_context}
-{past_meetings_context}
-{knowledge_base_context}
+        # Store in conversation history
+        conversation_history[bot_id].append({
+            "question": question,
+            "answer": response_text
+        })
 
-INSTRUCTIONS:
-- Prioritize recent meeting context when relevant (what was just said)
-- Reference past meetings ONLY if directly relevant to the question
-- Use knowledge base for principles, frameworks, and general guidance
-- Be warm, human, and professional
-- Keep it brief and clear (max {max_words} words)
-- If you don't know, say so honestly
-- Cite sources naturally when relevant
+        # Keep only last 10 Q&A pairs to avoid memory bloat
+        if len(conversation_history[bot_id]) > 10:
+            conversation_history[bot_id] = conversation_history[bot_id][-10:]
 
-Your response:"""
-
-        # Generate response
-        response_text = llm_service.generate(hira_prompt)
-
-        # Trim if too long
+        # Trim if too long (for chat) - hard limit at 100 words
         words = response_text.split()
-        if len(words) > max_words:
-            response_text = " ".join(words[:max_words]) + "..."
+        if len(words) > 100:
+            response_text = " ".join(words[:100]) + "..."
 
         print(f"💬 HiRA response: {response_text}")
 
@@ -185,6 +201,7 @@ class StartBotRequest(BaseModel):
     meeting_url: str
     meeting_title: Optional[str] = None
     bot_name: str = "HiRA"
+    output_media: Optional[str] = None  # URL to voice interface page
 
 class BotSessionResponse(BaseModel):
     bot_id: str
@@ -208,10 +225,11 @@ async def start_bot(request: StartBotRequest):
         meeting_id = str(uuid.uuid4())
         meeting_title = request.meeting_title or f"Meeting {datetime.now().strftime('%Y-%m-%d %H:%M')}"
 
-        # Create bot via Recall.ai
+        # Create bot via Recall.ai with optional voice interface
         bot_response = recall_service.create_bot(
             meeting_url=request.meeting_url,
-            bot_name=request.bot_name
+            bot_name=request.bot_name,
+            output_media=request.output_media  # Voice interface URL if provided
         )
 
         bot_id = bot_response.get('id')
@@ -321,57 +339,57 @@ async def chat_webhook(request: Request):
     """
     Webhook for Recall.ai chat events
 
-    Handles:
-    - Public chat messages with @HiRA
-    - Private DMs to HiRA
+    Handles participant_events.chat_message events
     """
     try:
         body = await request.json()
-        print(f"📥 Chat webhook received: {body}")
+        print(f"📥 Webhook received")
 
-        # Extract message info
-        bot_id = body.get('bot_id')
-        sender = body.get('sender', 'Unknown')
-        message_text = body.get('message', '')
-        is_private = body.get('is_private', False)  # Recall.ai indicates if message is private
+        event_type = body.get("event") or body.get("type", "")  # Match working test format
 
-        # Skip bot's own messages
-        if 'hira' in sender.lower() or 'bot' in sender.lower():
-            return {"status": "ignored", "reason": "own_message"}
+        # Handle chat message events
+        if event_type == "participant_events.chat_message":
+            # Parse the nested structure correctly (based on actual Recall.ai webhook format)
+            data = body.get("data", {}).get("data", {})
+            participant = data.get("participant", {})
+            message_data = data.get("data", {})
+            message_text = message_data.get("text", "")
+            bot_id = body.get("data", {}).get("bot", {}).get("id")
 
-        print(f"💬 Chat from {sender} ({'private' if is_private else 'public'}): {message_text}")
+            print(f"💬 Chat message from {participant.get('name', 'Unknown')}: {message_text}")
 
-        # Check if message mentions HiRA
-        text_lower = message_text.lower()
-        if '@hira' in text_lower or '@hera' in text_lower or (is_private and message_text.strip()):
-            print(f"🎯 HiRA mentioned in chat!")
+            # Skip if no message or bot's own messages
+            if not message_text or not bot_id:
+                return {"status": "ignored", "reason": "no_message"}
 
-            # Extract question
-            question = message_text.replace('@hira', '').replace('@HiRA', '').replace('@Hira', '').strip()
-            question = question.replace('@hera', '').replace('@HERA', '').replace('@Hera', '').strip()
+            # Check if message mentions HiRA
+            if "hira" in message_text.lower():
+                print(f"🎯 HiRA mentioned in chat!")
 
-            if question:
-                # Handle the question
-                private_to = sender if is_private else None
-                use_voice = not is_private  # No voice for private messages
+                # Extract question (remove @HiRA mentions)
+                question = message_text.replace('@HiRA', '').replace('@hira', '').replace('hira', '').replace('HiRA', '').strip()
 
-                asyncio.create_task(handle_question(
-                    question=question,
-                    bot_id=bot_id,
-                    private_to=private_to,
-                    use_voice=use_voice
-                ))
-            else:
-                # Just acknowledged
-                recall_service.send_chat_message(
-                    "Hi! How can I help you? Just ask me a question!",
-                    bot_id=bot_id
-                )
+                if question:
+                    # Handle the question asynchronously
+                    asyncio.create_task(handle_question(
+                        question=question,
+                        bot_id=bot_id,
+                        private_to=None,
+                        use_voice=False
+                    ))
+                else:
+                    # Just acknowledged
+                    recall_service.send_chat_message(
+                        "Hi! How can I help you? Just ask me a question!",
+                        bot_id=bot_id
+                    )
 
         return {"status": "processed"}
 
     except Exception as e:
         print(f"❌ Chat webhook error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
 @router.websocket("/bot/audio")

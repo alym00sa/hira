@@ -145,6 +145,33 @@
   margin: 0;
 }
 
+.feature-note {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.bot-architecture-note {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-left: 3px solid var(--primary-color);
+  border-radius: 0.5rem;
+}
+
+.bot-architecture-note p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.bot-architecture-note strong {
+  color: var(--primary-color);
+}
+
 /* Buttons */
 .start-button,
 .stop-button {

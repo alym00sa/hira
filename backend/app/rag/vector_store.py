@@ -125,7 +125,7 @@ class VectorStore:
             user_results = self.collection.query(
                 query_texts=[query],
                 n_results=n_results,
-                where={"scope": "user", "user_id": user_id}
+                where={"$and": [{"scope": "user"}, {"user_id": user_id}]}
             )
 
             # Merge and sort by distance
@@ -133,7 +133,7 @@ class VectorStore:
 
         elif user_id and not include_core:
             # Only user documents
-            where_filter = {"scope": "user", "user_id": user_id}
+            where_filter = {"$and": [{"scope": "user"}, {"user_id": user_id}]}
         elif include_core and not user_id:
             # Only core documents
             where_filter = {"scope": "core"}

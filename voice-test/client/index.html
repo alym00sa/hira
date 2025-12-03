@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiRA Voice Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .container {
+            text-align: center;
+            color: white;
+        }
+
+        .avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .avatar.listening {
+            animation: pulse 1.5s ease-in-out infinite;
+            border-color: #4ade80;
+            box-shadow: 0 0 30px rgba(74, 222, 128, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .status {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .connection-status {
+            margin-top: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+        }
+
+        .connection-status.connected {
+            background: rgba(74, 222, 128, 0.3);
+        }
+
+        .connection-status.error {
+            background: rgba(239, 68, 68, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="avatar" id="avatar">🌍</div>
+        <div class="status" id="status">Initializing...</div>
+        <div class="subtitle" id="subtitle">HiRA Voice Agent</div>
+        <div class="connection-status" id="connectionStatus">Connecting...</div>
+    </div>
+
+    <script>
+        const avatar = document.getElementById('avatar');
+        const status = document.getElementById('status');
+        const subtitle = document.getElementById('subtitle');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        let ws = null;
+        let mediaRecorder = null;
+        let audioContext = null;
+        let isListening = false;
+
+        // Get WebSocket URL from query params or use localhost
+        const urlParams = new URLSearchParams(window.location.search);
+        const wsUrl = urlParams.get('ws') || 'ws://localhost:8765';
+
+        console.log('Connecting to:', wsUrl);
+
+        // Initialize WebSocket connection
+        function connectWebSocket() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                connectionStatus.textContent = '✓ Connected';
+                connectionStatus.className = 'connection-status connected';
+                status.textContent = 'Ready';
+                subtitle.textContent = 'Say "HiRA" to activate';
+                startAudioCapture();
+            };
+
+            ws.onmessage = async (event) => {
+                console.log('Received message from server');
+
+                // Check if it's audio data (blob)
+                if (event.data instanceof Blob) {
+                    console.log('Received audio blob, playing...');
+                    playAudio(event.data);
+                } else {
+                    // Text message
+                    const data = JSON.parse(event.data);
+                    console.log('Received:', data);
+
+                    if (data.type === 'transcript') {
+                        subtitle.textContent = `You said: "${data.text}"`;
+                    } else if (data.type === 'response') {
+                        subtitle.textContent = `HiRA: "${data.text}"`;
+                    }
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                connectionStatus.textContent = '✗ Connection Error';
+                connectionStatus.className = 'connection-status error';
+                status.textContent = 'Error';
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                connectionStatus.textContent = '✗ Disconnected';
+                connectionStatus.className = 'connection-status error';
+                status.textContent = 'Disconnected';
+
+                // Try to reconnect after 3 seconds
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        // Start capturing audio from microphone
+        async function startAudioCapture() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                console.log('Microphone access granted');
+
+                // Create MediaRecorder to capture audio
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'audio/webm;codecs=opus',
+                    audioBitsPerSecond: 16000
+                });
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+                        // Send audio chunk to server
+                        ws.send(event.data);
+                        console.log('Sent audio chunk:', event.data.size, 'bytes');
+                    }
+                };
+
+                // Start recording in chunks
+                mediaRecorder.start(100); // Send chunks every 100ms
+
+                isListening = true;
+                avatar.classList.add('listening');
+                console.log('Audio capture started');
+
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                status.textContent = 'Microphone Error';
+                subtitle.textContent = 'Please allow microphone access';
+            }
+        }
+
+        // Initialize Audio Context
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioCtx;
+        }
+
+        // Play audio response using Web Audio API
+        async function playAudio(audioBlob) {
+            try {
+                console.log('Received audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
+
+                status.textContent = 'Processing audio...';
+
+                // Get audio context
+                const ctx = getAudioContext();
+
+                // Convert blob to array buffer
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                console.log('Converted to array buffer:', arrayBuffer.byteLength, 'bytes');
+
+                // Decode audio data
+                const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                console.log('Audio decoded:', audioBuffer.duration, 'seconds');
+
+                // Create buffer source
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(ctx.destination);
+
+                // Update UI
+                status.textContent = 'Speaking';
+                avatar.classList.add('speaking');
+
+                // Play audio
+                source.start(0);
+                console.log('Playing audio...');
+
+                // When playback ends
+                source.onended = () => {
+                    console.log('Audio playback finished');
+                    status.textContent = 'Listening';
+                    avatar.classList.remove('speaking');
+                };
+
+            } catch (error) {
+                console.error('Error playing audio:', error);
+                console.error('Error details:', error.message);
+                status.textContent = 'Audio Error';
+
+                // Fallback: show that we received audio even if can't play
+                setTimeout(() => {
+                    status.textContent = 'Listening';
+                }, 2000);
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            console.log('Page loaded, initializing...');
+            connectWebSocket();
+        });
+    </script>
+</body>
+</html>

@@ -21,14 +21,19 @@ export default function BotPage() {
     setError(null);
 
     try {
+      // Build voice interface URL (will be bot's video feed)
+      const frontendUrl = window.location.origin;
+      const voiceInterfaceUrl = `${frontendUrl}/voice`;
+
       const response = await botAPI.start({
         meeting_url: meetingUrl,
         meeting_title: meetingTitle || undefined,
-        bot_name: botName
+        bot_name: botName,
+        output_media: voiceInterfaceUrl  // Voice interface as bot's video
       });
 
       setActiveBot(response.data);
-      console.log('Bot started:', response.data);
+      console.log('Bot started with voice interface:', voiceInterfaceUrl);
     } catch (err) {
       console.error('Failed to start bot:', err);
       setError(err.response?.data?.detail || 'Failed to start bot. Make sure backend is running.');
@@ -125,6 +130,7 @@ export default function BotPage() {
                   <div>
                     <strong>Voice Responses</strong>
                     <p>Say "Hey HiRA" + your question</p>
+                    <small className="feature-note">Uses OpenAI Realtime API with RAG</small>
                   </div>
                 </div>
                 <div className="feature-item">
@@ -132,6 +138,7 @@ export default function BotPage() {
                   <div>
                     <strong>Public Chat</strong>
                     <p>Type @HiRA in meeting chat</p>
+                    <small className="feature-note">Text responses via webhook</small>
                   </div>
                 </div>
                 <div className="feature-item">
@@ -139,8 +146,12 @@ export default function BotPage() {
                   <div>
                     <strong>Private DMs</strong>
                     <p>Message HiRA privately for discreet help</p>
+                    <small className="feature-note">Both voice & text supported</small>
                   </div>
                 </div>
+              </div>
+              <div className="bot-architecture-note">
+                <p><strong>How it works:</strong> HiRA joins with a voice interface displayed as video feed. Participants see HiRA's status (listening, thinking, speaking) and can interact via voice or chat.</p>
               </div>
             </div>
 

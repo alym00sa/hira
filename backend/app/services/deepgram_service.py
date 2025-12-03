@@ -4,7 +4,8 @@ Deepgram service for real-time speech-to-text transcription
 import asyncio
 import json
 from typing import Optional, Callable
-from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
+import httpx
+from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions, PrerecordedOptions, FileSource
 from app.core.config import settings
 
 class DeepgramService:
@@ -106,3 +107,46 @@ class DeepgramService:
     def get_current_transcript(self) -> str:
         """Get current transcript buffer as string"""
         return " ".join(self.transcript_buffer)
+
+    async def transcribe_file(self, file_path: str) -> str:
+        """
+        Transcribe an audio file using Deepgram's prerecorded API
+
+        Args:
+            file_path: Path to audio file
+
+        Returns:
+            Transcript text
+        """
+        try:
+            # Initialize client if needed
+            if not self.client:
+                self.client = DeepgramClient(self.api_key)
+
+            # Read audio file
+            with open(file_path, 'rb') as audio_file:
+                buffer_data = audio_file.read()
+
+            payload: FileSource = {
+                "buffer": buffer_data,
+            }
+
+            # Configure options
+            options = PrerecordedOptions(
+                model="nova-2",
+                language="en-US",
+                smart_format=True,
+                punctuate=True,
+                diarize=False
+            )
+
+            # Transcribe using prerecorded API
+            response = self.client.listen.prerecorded.v("1").transcribe_file(payload, options)
+
+            # Extract transcript - response is an object, not dict
+            transcript = response.results.channels[0].alternatives[0].transcript
+            return transcript.strip()
+
+        except Exception as e:
+            print(f"❌ Deepgram file transcription error: {str(e)}")
+            raise

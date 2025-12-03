@@ -1,0 +1,4 @@
+curl -X POST "https://us-west-2.recall.ai/api/v1/bot/" \
+    -H "Authorization: 45cb49af128deb00d9883c41cc0701afb4b65824" \
+    -H "Content-Type: application/json" \
+    -d '{"meeting_url": "https://zoom.us/j/test", "bot_name": "Test"}'

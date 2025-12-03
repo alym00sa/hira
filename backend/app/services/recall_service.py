@@ -2,7 +2,6 @@
 Recall.ai service for Zoom meeting bot integration
 """
 import requests
-import os
 from typing import Optional, Dict
 from app.core.config import settings
 
@@ -10,45 +9,83 @@ class RecallService:
     """Service for interacting with Recall.ai API"""
 
     def __init__(self):
-        self.base_url = "https://us-east-1.recall.ai/api/v1/bot"
-        self.api_key = os.getenv('RECALL_API_KEY', '')
+        self.base_url = "https://us-west-2.recall.ai/api/v1"
+        self.api_key = settings.RECALL_API_KEY
+        print(f"🔑 Recall API Key loaded: {self.api_key[:10]}..." if self.api_key else "⚠️ No API key found!")
         self.headers = {
             "accept": "application/json",
             "content-type": "application/json",
-            "Authorization": self.api_key
+            "Authorization": f"Token {self.api_key}"  # Recall.ai requires "Token" prefix
         }
         self.bot_id: Optional[str] = None
 
-    def create_bot(self, meeting_url: str, bot_name: str = "HiRA") -> Dict:
+    def create_bot(self, meeting_url: str, bot_name: str = "HiRA", output_media: Optional[str] = None) -> Dict:
         """
         Create a bot and join it to a Zoom meeting
 
         Args:
             meeting_url: Zoom meeting URL
             bot_name: Name the bot will appear as in the meeting
+            output_media: Optional URL to display as bot's video feed (for voice interface)
 
         Returns:
             Bot creation response with bot_id
         """
-        # Get webhook URL (will be set when server starts)
-        webhook_url = os.getenv('WEBHOOK_URL', 'http://localhost:8000')
+        # Get webhook URL from settings
+        webhook_url = settings.WEBHOOK_URL
+
+        # Configure webhook endpoint (new API format)
+        endpoints = [{
+            "type": "webhook",
+            "url": f"{webhook_url}/api/v1/bot/chat-webhook",  # Full path with router prefix
+            "events": [
+                "participant_events.chat_message",
+                "participant_events.join",
+                "participant_events.leave"
+            ]
+        }]
+
+        # Recording config (new API format)
+        recording_config = {
+            "transcript": {
+                "provider": {
+                    "recallai_streaming": {
+                        "language_code": "en",
+                        "mode": "prioritize_low_latency"
+                    }
+                }
+            },
+            "participant_events": {},
+            "meeting_metadata": {},
+            "realtime_endpoints": endpoints,
+            "start_recording_on": "participant_join"
+        }
 
         payload = {
             "meeting_url": meeting_url,
             "bot_name": bot_name,
-            "real_time_media": {
-                "websocket_audio_destination_url": f"{webhook_url.replace('http', 'ws')}/api/v1/bot/audio"
-            },
-            "automatic_leave": {
-                "waiting_room_timeout": 600  # Leave after 10 min in waiting room
-            },
-            "transcription_options": {
-                "provider": "none"  # We'll handle transcription with Deepgram
-            }
+            "recording_config": recording_config
         }
 
+        # TEMPORARILY DISABLED - Testing if output_media causes 403
+        # Add output_media if provided (for voice interface)
+        # if output_media:
+        #     payload["output_media"] = {
+        #         "camera": {
+        #             "kind": "webpage",
+        #             "config": {
+        #                 "url": output_media
+        #             }
+        #         }
+        #     }
+        #     print(f"🎥 Voice interface enabled: {output_media}")
+
+        if output_media:
+            print(f"⚠️ output_media provided but DISABLED for testing: {output_media}")
+
         try:
-            response = requests.post(self.base_url, headers=self.headers, json=payload)
+            url = f"{self.base_url}/bot/"  # Match working test format
+            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
             response.raise_for_status()
             data = response.json()
             self.bot_id = data.get('id')
@@ -78,10 +115,10 @@ class RecallService:
         if not bot_id:
             raise ValueError("No bot_id provided")
 
-        url = f"{self.base_url}/{bot_id}"
+        url = f"{self.base_url}/bot/{bot_id}"  # Add /bot/ prefix for consistency
 
         try:
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -102,10 +139,10 @@ class RecallService:
         if not bot_id:
             raise ValueError("No bot_id provided")
 
-        url = f"{self.base_url}/{bot_id}/leave_call"
+        url = f"{self.base_url}/bot/{bot_id}/leave_call"  # Add /bot/ prefix for consistency
 
         try:
-            response = requests.post(url, headers=self.headers)
+            response = requests.post(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             print(f"✅ Bot {bot_id} left the meeting")
             return response.json()
@@ -128,11 +165,11 @@ class RecallService:
         if not bot_id:
             raise ValueError("No bot_id provided")
 
-        url = f"{self.base_url}/{bot_id}/send_chat_message"
-        payload = {"message": message}
+        url = f"{self.base_url}/bot/{bot_id}/send_chat_message/"
+        payload = {"message": message, "send_to":"everyone"}
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
+            response = requests.post(url, headers=self.headers, json=payload, timeout=10)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -154,7 +191,7 @@ class RecallService:
         if not bot_id:
             raise ValueError("No bot_id provided")
 
-        url = f"{self.base_url}/{bot_id}/output_audio"
+        url = f"{self.base_url}/bot/{bot_id}/output_audio/"  # Match working test format
         payload = {
             "b64_data": audio_base64,
             "kind": "mp3"
@@ -162,7 +199,7 @@ class RecallService:
 
         try:
             print(f"🔊 Sending audio to meeting ({len(audio_base64)} chars)")
-            response = requests.post(url, headers=self.headers, json=payload)
+            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
             response.raise_for_status()
             print(f"✅ Audio sent successfully")
             return response.json()
