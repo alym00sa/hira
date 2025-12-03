@@ -24,6 +24,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
         "https://hira-frontend.vercel.app",  # Production frontend
+        "https://hira-frontend-git-main-moosas-projects-fcab463d.vercel.app",  # Main branch deployment
     ]
 
     # Security
