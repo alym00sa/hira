@@ -11,6 +11,18 @@ from app.services.voice_relay_service import TranscriptBuffer
 
 router = APIRouter()
 
+# Initialize RAG engine once at module load (not per connection)
+_rag_engine = None
+
+def get_rag_engine():
+    """Get or create the shared RAG engine instance"""
+    global _rag_engine
+    if _rag_engine is None:
+        print("🔧 Initializing shared RAG engine...", flush=True)
+        _rag_engine = RAGEngine()
+        print("✅ Shared RAG engine initialized", flush=True)
+    return _rag_engine
+
 @router.websocket("/voice-relay")
 async def voice_relay_endpoint(client_ws: WebSocket):
     """
@@ -20,18 +32,9 @@ async def voice_relay_endpoint(client_ws: WebSocket):
     await client_ws.accept()
     print(f"🔵 Voice relay client connected", flush=True)
 
-    # Initialize RAG and transcript buffer
-    try:
-        print("🔧 Initializing RAG engine and transcript buffer...", flush=True)
-        rag_engine = RAGEngine()
-        transcript = TranscriptBuffer()
-        print("✅ RAG and transcript buffer initialized", flush=True)
-    except Exception as e:
-        print(f"❌ Error initializing RAG: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        await client_ws.close(code=1011, reason="Initialization error")
-        return
+    # Use shared RAG engine and create new transcript buffer
+    rag_engine = get_rag_engine()
+    transcript = TranscriptBuffer()
 
     # OpenAI configuration
     openai_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
