@@ -75,13 +75,19 @@ When someone says "Hey HiRA" followed by their question:
       const wavStreamPlayer = wavStreamPlayerRef.current
 
       // Connect to microphone
+      console.log('🎤 Requesting microphone access...')
       await wavRecorder.begin()
+      console.log('✅ Microphone connected')
 
       // Connect to audio output
+      console.log('🔊 Connecting audio output...')
       await wavStreamPlayer.connect()
+      console.log('✅ Audio output connected')
 
       // Connect to OpenAI Realtime API
+      console.log('🔌 Connecting to OpenAI...')
       await client.connect()
+      console.log('✅ OpenAI connected')
 
       isConnectedRef.current = true
       setConnectionStatus('connected')
@@ -188,7 +194,12 @@ When someone says "Hey HiRA" followed by their question:
       })
 
       // Start recording
-      await wavRecorder.record((data) => client.appendInputAudio(data.mono))
+      console.log('🎙️ Starting microphone recording...')
+      await wavRecorder.record((data) => {
+        console.log('🎤 Audio chunk received:', data.mono.length, 'samples')
+        client.appendInputAudio(data.mono)
+      })
+      console.log('✅ Recording started')
 
       console.log('✅ Connected to OpenAI Realtime API (direct connection)')
 
