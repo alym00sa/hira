@@ -105,14 +105,17 @@ When someone says "Hey HiRA" followed by their question:
       })
 
       // Update session with tools and instructions
+      console.log('⚙️ Updating session configuration...')
       client.updateSession({
         turn_detection: { type: 'server_vad' },
         tools: HIRA_TOOLS,
         tool_choice: 'auto',
         voice: 'shimmer',
         instructions: HIRA_INSTRUCTIONS,
-        temperature: 0.7
+        temperature: 0.7,
+        modalities: ['text', 'audio']
       })
+      console.log('✅ Session updated')
 
       // Handle function calls
       client.on('conversation.updated', async ({ item, delta }) => {
@@ -171,15 +174,22 @@ When someone says "Hey HiRA" followed by their question:
       // Handle speech detection with debounce
       let speechTimeout = null
       client.on('input_audio_buffer.speech_started', () => {
+        console.log('🗣️ Speech detected - listening...')
         speechTimeout = setTimeout(() => {
           setIsListening(true)
         }, 200)
       })
 
       client.on('input_audio_buffer.speech_stopped', () => {
+        console.log('🤫 Speech stopped - processing...')
         if (speechTimeout) clearTimeout(speechTimeout)
         setIsListening(false)
         setIsThinking(true)
+      })
+
+      // Debug: log all realtime events
+      client.on('*', (event) => {
+        console.log('📡 Realtime event:', event.type)
       })
 
       // Handle conversation interruptions
