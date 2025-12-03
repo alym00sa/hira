@@ -2,8 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import '../styles/VoicePage.css'
 
 function VoicePage() {
-  // Get relay server URL from environment or use default
-  const RELAY_SERVER_URL = import.meta.env.VITE_RELAY_URL || 'ws://localhost:8765'
+  // Get API base URL and construct WebSocket relay URL
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+  // Convert HTTP(S) to WS(S) and add voice-relay endpoint
+  const RELAY_SERVER_URL = API_BASE_URL
+    .replace('https://', 'wss://')
+    .replace('http://', 'ws://') + '/voice-relay'
 
   const [connectionStatus, setConnectionStatus] = useState('connecting')
   const [isListening, setIsListening] = useState(false)

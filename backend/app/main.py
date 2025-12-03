@@ -5,7 +5,7 @@ Main FastAPI application entry point
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.routes import chat, documents, health, meetings, zoom, extension, bot
+from app.api.routes import chat, documents, health, meetings, zoom, extension, bot, voice_relay
 
 app = FastAPI(
     title="HiRA API",
@@ -30,6 +30,7 @@ app.include_router(meetings.router, prefix="/api/v1", tags=["meetings"])
 app.include_router(zoom.router, prefix="/api/v1", tags=["zoom"])
 app.include_router(extension.router, prefix="/api/v1", tags=["extension"])
 app.include_router(bot.router, prefix="/api/v1", tags=["bot"])
+app.include_router(voice_relay.router, prefix="/api/v1", tags=["voice"])
 
 @app.on_event("startup")
 async def startup_event():
