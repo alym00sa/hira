@@ -34,16 +34,25 @@ class RecallService:
         # Get webhook URL from settings
         webhook_url = settings.WEBHOOK_URL
 
-        # Configure webhook endpoint (new API format)
-        endpoints = [{
-            "type": "webhook",
-            "url": f"{webhook_url}/api/v1/bot/chat-webhook",  # Full path with router prefix
-            "events": [
-                "participant_events.chat_message",
-                "participant_events.join",
-                "participant_events.leave"
-            ]
-        }]
+        # Configure webhook endpoints (new API format)
+        endpoints = [
+            {
+                "type": "webhook",
+                "url": f"{webhook_url}/api/v1/bot/chat-webhook",  # Chat events
+                "events": [
+                    "participant_events.chat_message",
+                    "participant_events.join",
+                    "participant_events.leave"
+                ]
+            },
+            {
+                "type": "webhook",
+                "url": f"{webhook_url}/api/v1/bot/transcript-webhook",  # Transcript events
+                "events": [
+                    "transcript.data"  # Only finalized transcripts (prevents duplicates)
+                ]
+            }
+        ]
 
         # Recording config (new API format)
         recording_config = {

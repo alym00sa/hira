@@ -95,12 +95,17 @@ function VoicePage() {
         }
       })
 
-      // Handle speech detection
+      // Handle speech detection with debounce to prevent initial flash
+      let speechTimeout = null
       client.on('input_audio_buffer.speech_started', () => {
-        setIsListening(true)
+        // Small delay to filter out connection noise
+        speechTimeout = setTimeout(() => {
+          setIsListening(true)
+        }, 200)
       })
 
       client.on('input_audio_buffer.speech_stopped', () => {
+        if (speechTimeout) clearTimeout(speechTimeout)
         setIsListening(false)
         setIsThinking(true)
       })

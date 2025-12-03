@@ -271,17 +271,24 @@ async def stop_bot(bot_id: str):
         # Get transcript
         transcript = " ".join(session['transcript'])
 
-        # Create meeting record
-        meeting_data = MeetingCreate(
-            title=session['meeting_title'],
-            date=session['start_time'],
-            transcript=transcript
-        )
+        # Create database session and meeting service
+        db = SessionLocal()
+        try:
+            meeting_service_instance = MeetingService(db)
 
-        meeting = await meeting_service.create_meeting(meeting_data)
+            # Create meeting record
+            meeting_data = MeetingCreate(
+                title=session['meeting_title'],
+                date=session['start_time'],
+                transcript=transcript
+            )
 
-        # Generate summary
-        await meeting_service.generate_summary(meeting.id)
+            meeting = await meeting_service_instance.create_meeting(meeting_data)
+
+            # Generate summary
+            await meeting_service_instance.generate_summary(meeting.id)
+        finally:
+            db.close()
 
         # Clean up session
         del active_sessions[bot_id]
@@ -374,6 +381,84 @@ async def chat_webhook(request: Request):
 
     except Exception as e:
         print(f"❌ Chat webhook error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
+@router.post("/bot/transcript-webhook")
+async def transcript_webhook(request: Request):
+    """
+    Webhook for Recall.ai transcript events
+
+    Receives real-time transcription as the meeting progresses
+    """
+    try:
+        body = await request.json()
+
+        # DEBUG: Print full payload to see structure
+        import json
+        print("\n" + "="*60)
+        print("📥 TRANSCRIPT WEBHOOK RECEIVED")
+        print("="*60)
+        print(json.dumps(body, indent=2))
+        print("="*60 + "\n")
+
+        event_type = body.get("event") or body.get("type", "")
+        print(f"🔍 Event type: {event_type}")
+
+        # Handle transcript events (only final, not partial to avoid duplicates)
+        if event_type == "transcript.data":
+            # Extract transcript data
+            data = body.get("data", {}).get("data", {})
+
+            # Extract words array and join into text
+            words = data.get("words", [])
+            transcript_text = " ".join([word.get("text", "") for word in words])
+
+            # Extract speaker info (it's "participant" not "speaker")
+            participant = data.get("participant", {})
+            speaker_name = participant.get("name", "Unknown")
+
+            bot_id = body.get("data", {}).get("bot", {}).get("id")
+
+            print(f"📝 Extracted: speaker={speaker_name}, text={transcript_text[:50]}...")
+
+            if not bot_id or not transcript_text:
+                return {"status": "ignored", "reason": "missing_data"}
+
+            # Get the bot session
+            session = active_sessions.get(bot_id)
+            if not session:
+                print(f"⚠️ No session found for bot {bot_id}")
+                return {"status": "ignored", "reason": "no_session"}
+
+            # Add to transcript buffer
+            # Format: "Speaker: text"
+            transcript_line = f"{speaker_name}: {transcript_text}"
+            session['transcript'].append(transcript_line)
+
+            print(f"✅ Added to transcript: {transcript_line}")
+
+            # Check for "Hey HiRA" wake word in transcript
+            if detect_trigger(transcript_text):
+                print(f"🎯 Wake word detected in transcript: {transcript_text}")
+                # Extract question (remove wake word)
+                question = transcript_text
+                for trigger in ["hey hira", "hi hira", "hello hira", "hira"]:
+                    question = question.lower().replace(trigger, "").strip()
+
+                if question:
+                    # Handle via voice (output_audio) not chat
+                    asyncio.create_task(handle_question(
+                        question=question,
+                        bot_id=bot_id,
+                        use_voice=True  # Use voice for spoken questions
+                    ))
+
+        return {"status": "processed"}
+
+    except Exception as e:
+        print(f"❌ Transcript webhook error: {str(e)}")
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}

@@ -1,4 +1,4 @@
-# Environment variables (contains API keys!)
+bef# Environment variables (contains API keys!)
 .env
 .env.local
 .env.*.local
@@ -70,3 +70,4 @@ htmlcov/
 *.sqlite
 *.sqlite3
 nul
+old_voice.jsx
