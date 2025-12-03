@@ -126,7 +126,7 @@ KNOWLEDGE BASE DOCUMENTS:
         enhanced_question = f"""{question}
 
 [IMPORTANT: This is a Zoom meeting chat response. Keep it:
-- BRIEF: 2-3 sentences maximum (50-75 words)
+- DETAILED: 4-7 sentences (100-175 words) - enough to be thorough but not overwhelming
 - WARM: Friendly and approachable tone
 - CLEAR: Simple language, no jargon unless necessary
 - ACTIONABLE: Give concrete, helpful guidance

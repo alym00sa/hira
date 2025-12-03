@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
     TOP_K_RETRIEVAL: int = 5
-    SIMILARITY_THRESHOLD: float = 0.5
+    SIMILARITY_THRESHOLD: float = 0.45  # Lowered from 0.5 to retrieve more results
 
     # Vector Database
     VECTOR_DB_TYPE: str = "chroma"  # or "faiss", "pinecone"
