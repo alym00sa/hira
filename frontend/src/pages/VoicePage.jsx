@@ -196,9 +196,8 @@ When someone says "Hey HiRA" followed by their question:
       // Start recording
       console.log('🎙️ Starting microphone recording...')
       await wavRecorder.record((data) => {
-        console.log('🎤 Audio data structure:', data)
-        const audioData = data.mono || data
-        console.log('🎤 Audio chunk received:', audioData?.length || 'unknown', 'samples')
+        // Convert ArrayBuffer to Int16Array for OpenAI
+        const audioData = new Int16Array(data.mono)
         client.appendInputAudio(audioData)
       })
       console.log('✅ Recording started')
