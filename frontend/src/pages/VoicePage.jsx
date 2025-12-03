@@ -196,8 +196,10 @@ When someone says "Hey HiRA" followed by their question:
       // Start recording
       console.log('🎙️ Starting microphone recording...')
       await wavRecorder.record((data) => {
-        console.log('🎤 Audio chunk received:', data.mono.length, 'samples')
-        client.appendInputAudio(data.mono)
+        console.log('🎤 Audio data structure:', data)
+        const audioData = data.mono || data
+        console.log('🎤 Audio chunk received:', audioData?.length || 'unknown', 'samples')
+        client.appendInputAudio(audioData)
       })
       console.log('✅ Recording started')
 
