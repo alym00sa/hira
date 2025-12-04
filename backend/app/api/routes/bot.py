@@ -150,10 +150,10 @@ Think of it as speaking out loud in a meeting - conversational but professional.
         if len(conversation_history[bot_id]) > 10:
             conversation_history[bot_id] = conversation_history[bot_id][-10:]
 
-        # Trim if too long (for chat) - hard limit at 100 words
+        # Trim if too long (for chat) - limit at 175 words to match 4-7 sentence guidance
         words = response_text.split()
-        if len(words) > 100:
-            response_text = " ".join(words[:100]) + "..."
+        if len(words) > 175:
+            response_text = " ".join(words[:175]) + "..."
 
         print(f"💬 HiRA response: {response_text}")
 
