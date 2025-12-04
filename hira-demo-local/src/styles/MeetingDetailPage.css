@@ -1,0 +1,651 @@
+.meeting-detail-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.meeting-detail-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  padding: 3rem 2rem;
+}
+
+/* Header */
+.meeting-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-color);
+  font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: var(--primary-dark);
+}
+
+.meeting-detail-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.meeting-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.share-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.share-button:hover {
+  background-color: var(--primary-dark);
+}
+
+.share-link-container {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.share-link-input {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  min-width: 300px;
+  font-size: 0.875rem;
+}
+
+.copy-button {
+  padding: 0.5rem 1rem;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.copy-button:hover {
+  background-color: var(--background);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tab.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+/* Content */
+.meeting-content {
+  padding: 1rem 0;
+}
+
+.summary-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Single Blurb View */
+.summary-view-single {
+  display: flex;
+  flex-direction: column;
+}
+
+.single-blurb {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+}
+
+.blurb-section {
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.blurb-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.blurb-section h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem 0;
+}
+
+.blurb-section p {
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 1rem;
+}
+
+.blurb-section ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.blurb-section li {
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-size: 0.938rem;
+}
+
+/* Topic Notes */
+.topic-notes {
+  margin-bottom: 1.25rem;
+}
+
+.topic-notes:last-child {
+  margin-bottom: 0;
+}
+
+.topic-notes h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+/* HiRA Note Highlighting - Darker Blue Text */
+.hira-note {
+  color: #0369a1 !important;
+  font-weight: 500;
+}
+
+/* Small Edit Button */
+.edit-btn-small {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  padding: 0.375rem;
+  background-color: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.edit-btn-small:hover {
+  background-color: var(--background);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.single-blurb {
+  position: relative;
+}
+
+/* Text Editor Mode */
+.text-editor-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.full-text-editor {
+  width: 100%;
+  min-height: 500px;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 0.75rem 0.75rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.938rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  background-color: var(--surface);
+  resize: vertical;
+}
+
+.full-text-editor:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.save-btn-text, .cancel-btn-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.save-btn-text {
+  background-color: #10b981;
+  color: white;
+}
+
+.save-btn-text:hover {
+  background-color: #059669;
+}
+
+.cancel-btn-text {
+  background-color: #ef4444;
+  color: white;
+}
+
+.cancel-btn-text:hover {
+  background-color: #dc2626;
+}
+
+/* Editable Fields */
+.summary-editor {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  background-color: var(--background);
+  resize: vertical;
+}
+
+.summary-editor:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.editable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editable-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.item-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  font-size: 0.938rem;
+  color: var(--text-primary);
+  background-color: var(--background);
+}
+
+.item-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.remove-btn {
+  padding: 0.375rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-btn:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+.add-btn, .add-btn-small {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--background);
+  color: var(--text-primary);
+  border: 1px dashed var(--border);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  margin-top: 0.25rem;
+}
+
+.add-btn-small {
+  font-size: 0.813rem;
+  padding: 0.375rem 0.625rem;
+}
+
+.add-btn:hover, .add-btn-small:hover {
+  background-color: var(--surface);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.topic-edit-section {
+  margin-bottom: 1.5rem;
+}
+
+.topic-edit-section:last-child {
+  margin-bottom: 0;
+}
+
+.topic-edit-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem 0;
+}
+
+/* Delete Button */
+.delete-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  border-radius: 0.375rem;
+}
+
+.delete-button:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.summary-section {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.summary-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.summary-section p {
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Topics */
+.topic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.topic-tag {
+  padding: 0.5rem 1rem;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+/* Items */
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.item-card {
+  padding: 1rem;
+  background-color: var(--background);
+  border-left: 3px solid var(--primary-color);
+  border-radius: 0.5rem;
+}
+
+.item-card.severity-high {
+  border-left-color: var(--error);
+  background-color: #fee2e2;
+}
+
+.item-card.severity-medium {
+  border-left-color: var(--warning);
+  background-color: #fef3c7;
+}
+
+.item-card.severity-low {
+  border-left-color: var(--success);
+  background-color: #d1fae5;
+}
+
+.item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item-content strong {
+  color: var(--text-primary);
+}
+
+.item-meta {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.severity-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.severity-badge.severity-high {
+  background-color: var(--error);
+  color: white;
+}
+
+.severity-badge.severity-medium {
+  background-color: var(--warning);
+  color: white;
+}
+
+.severity-badge.severity-low {
+  background-color: var(--success);
+  color: white;
+}
+
+/* Lists */
+.obligations-list,
+.next-steps-list {
+  list-style: disc;
+  padding-left: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.obligations-list li,
+.next-steps-list li {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Stakeholders */
+.stakeholders-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stakeholder-tag {
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-light);
+  color: white;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Transcript */
+.transcript-view {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.transcript-text {
+  font-family: 'Courier New', monospace;
+  line-height: 1.8;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.no-transcript {
+  color: var(--text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Loading/Error States */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.loading-container svg,
+.error-container svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.loading-container p,
+.error-container p {
+  font-size: 1.125rem;
+}
+
+.back-button {
+  margin-top: 1rem;
+  padding: 0.5rem 1.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.back-button:hover {
+  background-color: var(--primary-dark);
+}
+
+@media (max-width: 768px) {
+  .meeting-detail-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .meeting-info {
+    gap: 1rem;
+  }
+
+  .share-link-input {
+    min-width: 200px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .summary-section {
+    padding: 1rem;
+  }
+}

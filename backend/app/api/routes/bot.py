@@ -136,7 +136,7 @@ Think of it as speaking out loud in a meeting - conversational but professional.
         # Generate response using LLM service
         result = await llm_service.generate_response(
             user_message=enhanced_question,
-            context=rag_context
+            context=rag_context["context"]  # Extract context string from dict
         )
         response_text = result["message"]
 
